@@ -1,0 +1,14 @@
+# Projet : Market Monitor
+# version : 0.1
+# File : .gitignore
+
+# environnment virtuel
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# vi
+*~
+
+#EOF
