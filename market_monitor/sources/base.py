@@ -12,6 +12,10 @@
 # License     : MIT
 #==============================================================================
 
+from market_monitor.search_query import SearchQuery
+from market_monitor.listing import Listing
+
+
 from abc import ABC, abstractmethod
 
 #-------------------------------------------------------------
@@ -19,9 +23,13 @@ from abc import ABC, abstractmethod
 # @abstractmethod marque search() comme methode obligatoire
 # tant qu une sous classe n'implemente pas search(), 
 # elle ne peut etre instanciee
+#
+# annotation de type pour search():
+# -> recoit un objet de type SearchQuerry
+# -> retourne une liste d'objets Listing
 #-------------------------------------------------------------
 class Source(ABC):
 
     @abstractmethod
-    def search(self, search):
+    def search(self, search: SearchQuery) -> list[Listing]:
         pass
