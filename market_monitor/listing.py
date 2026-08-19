@@ -5,7 +5,7 @@
 # Created     : 2026-08-16
 # Last Update : 
 # Version     : 0.1
-# Description : La classe Listing
+# Description : La classe Listing : represente une annonce trouvee
 # License     : MIT
 #==============================================================================
 

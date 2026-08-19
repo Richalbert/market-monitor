@@ -15,7 +15,7 @@ from market_monitor.tools import convert_price
 
 
 def test_listing_store_basic_information():
-    listing=Listing(
+    listing = Listing(
         title="MSI RTX 3080",
         price=350,
         url="https://example.com/annonce/123",
