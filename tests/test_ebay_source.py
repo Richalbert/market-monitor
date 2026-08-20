@@ -12,6 +12,8 @@
 
 from market_monitor.sources.ebay import parse_item
 from market_monitor.sources.ebay import parse_items
+from market_monitor.sources.ebay import EbaySource
+from market_monitor.search_query import SearchQuery
 
 from market_monitor.listing import Listing
 
@@ -75,3 +77,55 @@ def test_parse_items():
     assert len(listings) == 2
     assert isinstance(listings[0], Listing)
     assert isinstance(listings[1], Listing)
+
+
+#---------------------------------------------------------------
+# le StubEbayClient joue le role d'eBay, sans jamais faire 
+# de connection internet, il retourne un fichier JSON comme le 
+# ferai une vrai requete HTTP vers eBay
+# --------------------------------------------------------------
+class StubEbayClient:
+
+    def search(self, query):
+        return [
+            {
+                "title": "MSI MEG X570 UNIFY",
+                "price": {
+                    "value": "149.99",
+                    "currency": "EUR",
+                },
+                "itemWebUrl": "https://www.ebay.fr/itm/123",
+            },
+            {
+                "title": "MSI X570 UNIFY + Ryzen",
+                "price": {
+                    "value": "220",
+                    "currency": "EUR",
+                },
+                "itemWebUrl": "https://www.ebay.fr/itm/456",
+            },
+        ]
+
+
+
+
+def test_ebay_source_search_returns_listings():
+
+    # le client recoit la reponse du Stub eBay
+    client = StubEbayClient()
+
+    # on injecte la reponse du stub dans notre source
+    source = EbaySource(client)
+
+    # Voila notre recherche 
+    search = SearchQuery(
+        name="Carte mere X570",
+        query="X570 UNIFY",
+    )
+
+    # et le resultat de notre recherche
+    results = source.search(search)
+
+    assert len(results) == 2
+    assert isinstance(results[0], Listing)
+    assert isinstance(results[1], Listing)

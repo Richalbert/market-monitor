@@ -26,11 +26,11 @@ class LocalSource(Source):
 #----------------------------
 class LocalSource(Source):
 
-    # LocalSource doit pouvoir recevoir une liste de Listing a sa creation
+    # LocalSource recoit une liste de Listing a sa creation
     def __init__(self, listings):
         self.listings = listings
 
-
+    # Une source a une methode de recherche
     def search(self, search: SearchQuery) -> list[Listing]:
 
         results = []
