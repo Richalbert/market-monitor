@@ -10,6 +10,7 @@
 # License     : MIT
 #==============================================================================
 
+
 from market_monitor.sources.base import Source
 from market_monitor.search_query import SearchQuery
 

@@ -11,4 +11,7 @@ __pycache__/
 # vi
 *~
 
+# les secrets
+.env
+
 #EOF

@@ -1,6 +1,6 @@
 # =============================================================================
 # Project     : Market Monitor
-# File        : tests/test_ebay_source.py.py
+# File        : tests/test_ebay_source.py
 # Author      : Richalbert
 # Created     : 2026-08-19
 # Last Update : 
