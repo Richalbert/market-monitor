@@ -16,6 +16,7 @@
 from market_monitor.credentials.ebay import EbayCredentials
 from market_monitor.clients.ebay import EbayClient
 
+
 # === Test 13 ======================================
 #
 #   EbayClient conserve ses credentials
