@@ -20,9 +20,11 @@ class EbayClient:
         self, 
         credentials: EbayCredentials,
         http_client=None,
+        base_url="https://api.sandbox.ebay.com",
     ):
         self.credentials = credentials
         self.http_client = http_client
+        self.base_url = base_url
 
 
     def get_access_token(self)-> str:
@@ -38,7 +40,7 @@ class EbayClient:
         }
 
         response = self.http_client.post(
-            "https://api.sandbox.ebay.com/identity/v1/oauth2/token",
+            f"{self.base_url}/identity/v1/oauth2/token",
             headers=headers,
             data=data,
         )
@@ -67,7 +69,7 @@ class EbayClient:
 
     def search(self, query: str, access_token: str):
         return self.http_client.get(
-            "https://api.sandbox.ebay.com/buy/browse/v1/item_summary/search",
+            f"{self.base_url}/buy/browse/v1/item_summary/search",
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "X-EBAY-C-MARKETPLACE-ID": "EBAY_FR",

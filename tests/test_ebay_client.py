@@ -467,3 +467,62 @@ def test_ebay_client_uses_marketplace_fr_for_search():
     assert http_client.last_headers["X-EBAY-C-MARKETPLACE-ID"] == (
         "EBAY_FR"
     )
+
+
+# === Test 31 ====================================================
+#
+#   Ce test verifie que EbayClient utilise url_base comme
+#   base de recherche
+#
+# -----------------------------------------------------------------
+def test_ebay_client_uses_configured_base_url_for_search():
+
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    http_client = SpyHttpClient()
+
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+        base_url="https://api.ebay.com",
+    )
+
+    client.search(
+        query="X570 UNIFY",
+        access_token="fake-access-token",
+    )
+
+    assert http_client.last_url == (
+        "https://api.ebay.com/buy/browse/v1/item_summary/search"
+    )
+
+
+# === Test 32 ====================================================
+#
+#   Ce test verifie que lorsque base_url Production est configuree
+#   get_access_token() utilse egalement base_url
+#
+# -----------------------------------------------------------------
+def test_ebay_client_production_uses_base_url_for_access_token():
+
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    http_client = SpyHttpClient()
+
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+        base_url="https://api.ebay.com",
+    )
+
+    client.get_access_token()
+
+    assert http_client.last_url == (
+        "https://api.ebay.com/identity/v1/oauth2/token"
+    )

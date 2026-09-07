@@ -22,3 +22,11 @@ token = client.get_access_token()
 
 print("Token recu :", bool(token))
 print("Longueur du token :", len(token))
+
+results = client.search(
+    query="iphone",
+    access_token=token,
+)
+
+print("Cles de la reponse :", results.keys())
+print("Nombre de resultats :", results["total"])
