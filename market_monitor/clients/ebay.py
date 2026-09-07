@@ -65,5 +65,12 @@ class EbayClient:
         # Construction de la valeur du header Authorization
         return f"Basic {credentials_base64}"
 
-
-
+    def search(self, query: str, access_token: str):
+        return self.http_client.get(
+            "https://api.sandbox.ebay.com/buy/browse/v1/item_summary/search",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "X-EBAY-C-MARKETPLACE-ID": "EBAY_FR",
+            },
+            params={"q": query},
+        )

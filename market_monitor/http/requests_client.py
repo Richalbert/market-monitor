@@ -15,4 +15,19 @@ class RequestsHttpClient:
             headers=headers,
             data=data,
         )
+
+        response.raise_for_status()
+      
+        return response.json()
+
+
+    def get(self, url, headers=None, params=None):
+        response = self.requests_module.get(
+            url,
+            headers=headers,
+            params=params,
+        )
+
+        response.raise_for_status()
+        
         return response.json()

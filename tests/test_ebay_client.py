@@ -299,8 +299,9 @@ class SpyHttpClient:
 
     def __init__(self):
         self.last_url = None
+        self.last_params = None
         self.last_headers = None
-        self.last_data = None
+        #self.last_data = None
 
     def post(self, url, headers=None, data=None):
         self.last_url = url
@@ -312,6 +313,13 @@ class SpyHttpClient:
             "expires_in": 7200,
             "token_type": "Application Access Token",
         }
+
+    def get(self, url, headers=None, params=None):
+        self.last_url = url
+        self.last_params = params
+        self.last_headers = headers
+        return {}
+
 
 
 def test_ebay_client_uses_api_scope():
@@ -330,10 +338,132 @@ def test_ebay_client_uses_api_scope():
 
     token = client.get_access_token()
 
-
-
-
     # le contrat du test
     assert http_client.last_data["scope"] == (
         "https://api.ebay.com/oauth/api_scope"
+    )
+
+# === Test 27 =====================================
+#
+#   Test si EbayClient.search() utilise le bon 
+#   endpoint Browse Sandbox
+#
+# -------------------------------------------------
+
+def test_ebay_client_uses_browse_sandbox_search_url():
+
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    http_client = SpyHttpClient()
+
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    client.search(
+        query="X570 UNIFY",
+        access_token="fake-access-token",
+    )
+
+    assert http_client.last_url == (
+        "https://api.sandbox.ebay.com/buy/browse/v1/item_summary/search"
+    )
+
+# === Test 28 ====================================================
+#
+#   Test si EbayClient.search() transmet la requete de recherche
+#   avec les bons parametres GET (params)
+#
+# -----------------------------------------------------------------
+
+def test_ebay_client_transmit_search_request_with_params():
+
+    # Construction du client
+
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    http_client = SpyHttpClient()
+
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    # La recherche
+
+    client.search(
+        query="X570 UNIFY",
+        access_token="fake-access-token",
+    )
+
+    assert http_client.last_params == {"q": "X570 UNIFY"}
+
+    
+# === Test 29 ====================================================
+#
+#   Ce test verifie que EbayClient.search() transmet le token dnas le 
+#   header HTTP sous la forme :
+#       
+#       Authorization: Bearer fake-access-token
+#
+# -----------------------------------------------------------------
+def test_ebay_client_uses_bearer_token_for_search():
+
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    http_client = SpyHttpClient()
+
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    client.search(
+        query="X570 UNIFY",
+        access_token="fake-access-token",
+    )
+
+    assert http_client.last_headers["Authorization"] == (
+        "Bearer fake-access-token"
+    )
+
+# === Test 30 ====================================================
+#
+#   Ce test verifie que EbayClient.search() transmet sa recherche 
+#   sur le marketplace francais
+#       
+#       X-EBAY-C-MARKETPLACE-ID: EBAY_FR
+#
+# -----------------------------------------------------------------
+def test_ebay_client_uses_marketplace_fr_for_search():
+
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    http_client = SpyHttpClient()
+
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    client.search(
+        query="X570 UNIFY",
+        access_token="fake-access-token",
+    )
+
+    assert http_client.last_headers["X-EBAY-C-MARKETPLACE-ID"] == (
+        "EBAY_FR"
     )
