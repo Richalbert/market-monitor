@@ -15,7 +15,7 @@ from market_monitor.sources.ebay import parse_items
 from market_monitor.sources.ebay import EbaySource
 from market_monitor.search_query import SearchQuery
 
-from market_monitor.listing import Listing
+from market_monitor.models.listing import Listing
 
 def test_parse_item():
 

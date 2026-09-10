@@ -9,7 +9,7 @@
 # License     : MIT
 #==============================================================================
 
-from market_monitor.listing import Listing
+from market_monitor.models.listing import Listing
 
 from market_monitor.tools import convert_price
 

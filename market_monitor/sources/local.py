@@ -13,7 +13,7 @@
 
 from market_monitor.sources.base import Source
 from market_monitor.search_query import SearchQuery
-from market_monitor.listing import Listing
+from market_monitor.models.listing import Listing
 
 
 class LocalSource(Source):
