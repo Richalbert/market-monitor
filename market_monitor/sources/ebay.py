@@ -1,6 +1,6 @@
 # =============================================================================
 # Project     : Market Monitor
-# File        : tests/sources/ebay.py
+# File        : market-monitor/sources/ebay.py
 # Author      : Richalbert
 # Created     : 2026-08-19
 # Last Update : 
@@ -47,7 +47,7 @@ class EbaySource(Source):
 def parse_item(item: dict) -> Listing:
     return Listing(
         title=item["title"],
-        price=int(float(item["price"]["value"])),
+        price=float(item["price"]["value"]),
         url=item["itemWebUrl"],
         source="ebay",
     )

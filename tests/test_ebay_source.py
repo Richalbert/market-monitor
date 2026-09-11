@@ -37,7 +37,7 @@ def test_parse_item():
     # verification a travers les tests
 
     assert listing.title == "MSI MEG X570 UNIFY"
-    assert listing.price == 149
+    assert listing.price == 149.99
     assert listing.url == "https://www.ebay.fr/itm/123"
     assert listing.source == "ebay"
 
@@ -129,3 +129,23 @@ def test_ebay_source_search_returns_listings():
     assert len(results) == 2
     assert isinstance(results[0], Listing)
     assert isinstance(results[1], Listing)
+
+# === Test 33 ======================================================
+# 
+#   Teste la precision monetaire
+#
+# ------------------------------------------------------------------
+def test_parse_item_preserves_price_decimals():
+
+    item = {
+        "title": "OEM I/O Shield For MSI MEG X570 UNIFY Motherboard Backplate IO",
+        "price": {
+            "value": "19.36",
+            "currency": "EUR",
+        },
+        "itemWebUrl": "https://www.ebay.fr/itm/396052469502",
+    }
+
+    listing = parse_item(item)
+
+    assert listing.price == 19.36
