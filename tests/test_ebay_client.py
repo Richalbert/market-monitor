@@ -526,3 +526,35 @@ def test_ebay_client_production_uses_base_url_for_access_token():
     assert http_client.last_url == (
         "https://api.ebay.com/identity/v1/oauth2/token"
     )
+
+# === Test 35 ======================================================
+#
+#   Demande les suggestions de categories a l'API Taxonomy eBay
+#
+# ------------------------------------------------------------------
+def test_ebay_client_gets_category_suggestions():
+    
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    http_client = SpyHttpClient()
+
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    client.get_category_suggestions(
+        query="X570 UNIFY",
+        access_token="fake-token",
+        category_tree_id="71",
+    )
+
+    assert http_client.last_url == (
+        "https://api.sandbox.ebay.com/commerce/taxonomy/v1/"
+        "category_tree/71/get_category_suggestions"
+    )
+    assert http_client.last_params == {"q": "X570 UNIFY",}
+    assert http_client.last_headers["Authorization"] == ("Bearer fake-token")

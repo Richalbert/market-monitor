@@ -76,3 +76,28 @@ class EbayClient:
             },
             params={"q": query},
         )
+
+
+
+
+
+    def get_category_suggestions(
+        self,
+        query: str,
+        access_token: str,
+        category_tree_id: int):
+
+        url = (
+            f"{self.base_url}/commerce/taxonomy/v1/"
+            f"category_tree/{category_tree_id}/get_category_suggestions"
+        )
+
+        return self.http_client.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {access_token}",
+            },
+            params={
+                "q": query,
+            },
+        )
