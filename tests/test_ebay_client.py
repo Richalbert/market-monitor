@@ -960,3 +960,117 @@ def test_ebay_search_gets_access_token_when_not_provided():
     #         automatiquement par EbayClient.
     # ------------------------------------------------------------------
     assert http_client.last_headers["Authorization"] == ("Bearer fake-access-token")
+
+
+# === Test 47 ======================================================
+#
+#   Comportement :
+#   EbayClient.get_category_suggestions() obtient lui-meme un
+#   access_token lorsqu'aucun token ne lui est fourni.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Un EbayClient possedant :
+#
+#           - des credentials eBay factices
+#           - un client HTTP espion
+#
+#       Le client HTTP espion sait simuler la reponse OAuth :
+#
+#           {
+#               "access_token": "fake-access-token"
+#           }
+#
+#
+#   ETANT DONNE EGALEMENT :
+#
+#       Une recherche Taxonomy :
+#
+#           query = "X570 UNIFY"
+#
+#       effectuee dans l'arbre de categories eBay France :
+#
+#           category_tree_id = 71
+#
+#
+#   LORSQUE / WHEN :
+#
+#       get_category_suggestions() est appelee SANS fournir
+#       explicitement access_token.
+#
+#
+#   ALORS / THEN :
+#
+#       EbayClient doit obtenir lui-meme un token OAuth.
+#
+#       Puis il doit utiliser ce token pour appeler Taxonomy avec :
+#
+#           Authorization: Bearer fake-access-token
+#
+#
+#   Pourquoi ce test est important :
+#
+#       Le code appelant ne doit pas avoir a connaitre le mecanisme
+#       OAuth d'eBay.
+#
+#       Cette responsabilite appartient a EbayClient.
+#
+#       Nous obtenons ainsi la meme regle pour Browse et Taxonomy :
+#
+#           EbaySource / application
+#                   |
+#                   v
+#              EbayClient
+#                   |
+#                   +--> gere OAuth
+#                   |
+#                   +--> appelle l'API eBay
+#
+# ------------------------------------------------------------------
+def test_category_suggestions_get_access_token_when_not_provided():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Des credentials eBay factices.
+    #
+    # Ils sont uniquement utilises par notre simulation OAuth.
+    # Aucun acces au vrai site eBay n'est effectue.
+    # ------------------------------------------------------------------
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client HTTP espion.
+    #
+    # Son post() simule l'obtention du token OAuth.
+    # Son get() enregistre ensuite la requete Taxonomy.
+    # ------------------------------------------------------------------
+    http_client = SpyHttpClient()
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un EbayClient utilisant cet espion HTTP.
+    # ------------------------------------------------------------------
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Nous demandons des suggestions de categories
+    #           sans fournir access_token.
+    #
+    # Le category_tree_id 71 correspond a l'arbre EBAY_FR que nous
+    # avons observe avec la vraie Taxonomy API.
+    # ------------------------------------------------------------------
+    client.get_category_suggestions(
+        query="X570 UNIFY",
+        category_tree_id=71,
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - La requete Taxonomy doit utiliser le token obtenu
+    #         automatiquement par EbayClient.
+    # ------------------------------------------------------------------
+    assert http_client.last_headers["Authorization"] == ("Bearer fake-access-token")

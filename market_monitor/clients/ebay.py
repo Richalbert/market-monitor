@@ -93,8 +93,14 @@ class EbayClient:
         )
 
     def get_category_suggestions(
-        self, query: str, access_token: str, category_tree_id: int
+        self,
+        query: str,
+        category_tree_id: int,
+        access_token: str | None = None,
     ):
+
+        if access_token is None:
+            access_token = self.get_access_token()
 
         url = (
             f"{self.base_url}/commerce/taxonomy/v1/"
