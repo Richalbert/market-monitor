@@ -30,3 +30,9 @@ def parse_category_suggestions(suggestions):
         results.append(category)
 
     return results
+
+# reponse eBay -> list[Category]
+def parse_taxonomy_response(response):
+    suggestions = response["categorySuggestions"]
+
+    return parse_category_suggestions(suggestions)

@@ -3,29 +3,36 @@
 # File        : tests/test_ebay_client.py
 # Author      : Richalbert
 # Created     : 2026-08-21
-# Last Update : 
+# Last Update :
 # Version     : 0.1
 # Description : Test TDD du client eBay qui sera appartir des
-#               IDs dans.env 
+#               IDs dans.env
 #               - de passer OAuth eBay Sandbox
-#               - d'obtenir des acces_token et 
-#               - d'utiliser Browse API 
+#               - d'obtenir des acces_token et
+#               - d'utiliser Browse API
 # License     : MIT
-#==========================================================
+# ==========================================================
 
 from market_monitor.credentials.ebay import EbayCredentials
 from market_monitor.clients.ebay import EbayClient
 
-from market_monitor.categories import ( 
+from market_monitor.categories import (
     parse_category_suggestion,
     parse_category_suggestions,
+    parse_taxonomy_response,
 )
+
+from market_monitor.models.category import Category
+
+from market_monitor.search_query import SearchQuery
+
 
 # === Test 13 ======================================
 #
 #   EbayClient conserve ses credentials
 #
 # --------------------------------------------------
+
 
 def test_ebay_client_stores_credentials():
 
@@ -39,21 +46,21 @@ def test_ebay_client_stores_credentials():
     assert client.credentials == credentials
 
 
-
 # === Test 14 =====================================
 #
 #   EbayClient recupere l'access_token
 #
-# EbayClient demande un token a un composant HTTP et 
+# EbayClient demande un token a un composant HTTP et
 # recupere l'access_token contenu dans la reponse
 #
 # Et le Stub simulera la reponse HTTP d'eBay
 #
-# EbayClient 
+# EbayClient
 #   -> appelle un client HTTP fictif
 #   -> recoit une reponse contenant access_token
 #   -> retourne "fake-access-token"
 # ---------------------------------------------------
+
 
 class StubHttpClient:
 
@@ -88,13 +95,14 @@ def test_ebay_client_gets_access_token():
     # le contrat de ce test
     assert token == "fake-access-token"
 
+
 # ==================================================
 
 
 # === Test 15 =================================
 #
 #   EbayClient utilise le bon endpoint OAuth
-# 
+#
 #   Test: le client eBay utilise la bonne URL OAuth Sandbox
 #
 # Stub evolue en Spy
@@ -103,6 +111,7 @@ def test_ebay_client_gets_access_token():
 #   -> appelle le client HTTP
 #   -> a la bonne URL OAuth Sandbox
 # ---------------------------------------------
+
 
 class SpyHttpClient:
 
@@ -120,13 +129,13 @@ class SpyHttpClient:
 
 
 def test_ebay_client_uses_oauth_sandbox_url():
-        
+
     # on fixe des IDs
     credentials = EbayCredentials(
         client_id="fake-client-id",
         client_secret="fake-client-secret",
     )
-    
+
     # on appelle le Spy
     http_client = SpyHttpClient()
 
@@ -138,7 +147,7 @@ def test_ebay_client_uses_oauth_sandbox_url():
 
     # on recupere l'access_token la reponse a la requete
     token = client.get_access_token()
-        
+
     # le contrat de ce test
     assert http_client.last_url == (
         "https://api.sandbox.ebay.com/identity/v1/oauth2/token"
@@ -152,6 +161,7 @@ def test_ebay_client_uses_oauth_sandbox_url():
 #
 # ----------------------------------------------------
 
+
 class SpyHttpClient:
 
     def __init__(self):
@@ -160,13 +170,14 @@ class SpyHttpClient:
 
     def post(self, url, headers=None, data=None):
         self.last_url = url
-        self.last_headers=headers
+        self.last_headers = headers
 
         return {
             "access_token": "fake-access-token",
             "expires_in": 7200,
             "token_type": "Application Access Token",
         }
+
 
 def test_ebay_client_uses_form_urlencoded_content_type():
 
@@ -190,13 +201,12 @@ def test_ebay_client_uses_form_urlencoded_content_type():
     )
 
 
-
-
 # === Test 17 ===========================================
 #
 #   EbayClient envoie Authorization Basic correctement
 #
 # --------------------------------------------------------
+
 
 class SpyHttpClient:
 
@@ -206,13 +216,14 @@ class SpyHttpClient:
 
     def post(self, url, headers=None, data=None):
         self.last_url = url
-        self.last_headers=headers
+        self.last_headers = headers
 
         return {
             "access_token": "fake-access-token",
             "expires_in": 7200,
             "token_type": "Application Access Token",
         }
+
 
 def test_ebay_client_uses_basic_authorization():
 
@@ -241,9 +252,6 @@ def test_ebay_client_uses_basic_authorization():
     )
 
 
-
-
-
 # === Test 18 ============================================
 #
 #   EbayyClient envoie le body de la requete OAuth
@@ -251,6 +259,7 @@ def test_ebay_client_uses_basic_authorization():
 #   puis le scope
 #
 # ---------------------------------------------------------
+
 
 class SpyHttpClient:
 
@@ -269,6 +278,7 @@ class SpyHttpClient:
             "expires_in": 7200,
             "token_type": "Application Access Token",
         }
+
 
 def test_ebay_client_uses_client_credentials_grant_type():
 
@@ -290,7 +300,6 @@ def test_ebay_client_uses_client_credentials_grant_type():
     assert http_client.last_data["grant_type"] == "client_credentials"
 
 
-
 # === Test 19 ==================================================
 #
 #   La logique du scope OAuth, decrit ce que l'appli a le droit
@@ -299,13 +308,14 @@ def test_ebay_client_uses_client_credentials_grant_type():
 #   scope=https://api.ebay.com/oauth/api_scope
 # --------------------------------------------------------------
 
+
 class SpyHttpClient:
 
     def __init__(self):
         self.last_url = None
         self.last_params = None
         self.last_headers = None
-        #self.last_data = None
+        # self.last_data = None
 
     def post(self, url, headers=None, data=None):
         self.last_url = url
@@ -325,7 +335,6 @@ class SpyHttpClient:
         return {}
 
 
-
 def test_ebay_client_uses_api_scope():
 
     credentials = EbayCredentials(
@@ -343,16 +352,16 @@ def test_ebay_client_uses_api_scope():
     token = client.get_access_token()
 
     # le contrat du test
-    assert http_client.last_data["scope"] == (
-        "https://api.ebay.com/oauth/api_scope"
-    )
+    assert http_client.last_data["scope"] == ("https://api.ebay.com/oauth/api_scope")
+
 
 # === Test 27 =====================================
 #
-#   Test si EbayClient.search() utilise le bon 
+#   Test si EbayClient.search() utilise le bon
 #   endpoint Browse Sandbox
 #
 # -------------------------------------------------
+
 
 def test_ebay_client_uses_browse_sandbox_search_url():
 
@@ -377,12 +386,14 @@ def test_ebay_client_uses_browse_sandbox_search_url():
         "https://api.sandbox.ebay.com/buy/browse/v1/item_summary/search"
     )
 
+
 # === Test 28 ====================================================
 #
 #   Test si EbayClient.search() transmet la requete de recherche
 #   avec les bons parametres GET (params)
 #
 # -----------------------------------------------------------------
+
 
 def test_ebay_client_transmit_search_request_with_params():
 
@@ -409,12 +420,12 @@ def test_ebay_client_transmit_search_request_with_params():
 
     assert http_client.last_params == {"q": "X570 UNIFY"}
 
-    
+
 # === Test 29 ====================================================
 #
-#   Ce test verifie que EbayClient.search() transmet le token dnas le 
+#   Ce test verifie que EbayClient.search() transmet le token dnas le
 #   header HTTP sous la forme :
-#       
+#
 #       Authorization: Bearer fake-access-token
 #
 # -----------------------------------------------------------------
@@ -437,15 +448,14 @@ def test_ebay_client_uses_bearer_token_for_search():
         access_token="fake-access-token",
     )
 
-    assert http_client.last_headers["Authorization"] == (
-        "Bearer fake-access-token"
-    )
+    assert http_client.last_headers["Authorization"] == ("Bearer fake-access-token")
+
 
 # === Test 30 ====================================================
 #
-#   Ce test verifie que EbayClient.search() transmet sa recherche 
+#   Ce test verifie que EbayClient.search() transmet sa recherche
 #   sur le marketplace francais
-#       
+#
 #       X-EBAY-C-MARKETPLACE-ID: EBAY_FR
 #
 # -----------------------------------------------------------------
@@ -468,9 +478,7 @@ def test_ebay_client_uses_marketplace_fr_for_search():
         access_token="fake-access-token",
     )
 
-    assert http_client.last_headers["X-EBAY-C-MARKETPLACE-ID"] == (
-        "EBAY_FR"
-    )
+    assert http_client.last_headers["X-EBAY-C-MARKETPLACE-ID"] == ("EBAY_FR")
 
 
 # === Test 31 ====================================================
@@ -527,9 +535,8 @@ def test_ebay_client_production_uses_base_url_for_access_token():
 
     client.get_access_token()
 
-    assert http_client.last_url == (
-        "https://api.ebay.com/identity/v1/oauth2/token"
-    )
+    assert http_client.last_url == ("https://api.ebay.com/identity/v1/oauth2/token")
+
 
 # === Test 35 ======================================================
 #
@@ -537,7 +544,7 @@ def test_ebay_client_production_uses_base_url_for_access_token():
 #
 # ------------------------------------------------------------------
 def test_ebay_client_gets_category_suggestions():
-    
+
     credentials = EbayCredentials(
         client_id="fake-client-id",
         client_secret="fake-client-secret",
@@ -560,9 +567,10 @@ def test_ebay_client_gets_category_suggestions():
         "https://api.sandbox.ebay.com/commerce/taxonomy/v1/"
         "category_tree/71/get_category_suggestions"
     )
-    assert http_client.last_params == {"q": "X570 UNIFY",}
+    assert http_client.last_params == {
+        "q": "X570 UNIFY",
+    }
     assert http_client.last_headers["Authorization"] == ("Bearer fake-token")
-
 
 
 # === Test 36 ======================================================
@@ -583,7 +591,6 @@ def test_parse_category_suggestion():
 
     assert category.id == "1244"
     assert category.name == "Cartes mères"
-
 
 
 # === Test 37 ======================================================
@@ -614,3 +621,140 @@ def test_parse_category_suggestions():
     assert len(categories) == 2
     assert categories[0].id == "170080"
     assert categories[1].id == "1244"
+
+
+# === Test 38 ======================================================
+#
+#   A partir d'une reponse de eBay contenant CategorySuggestions
+#   on obtient deux objets Category
+#
+# ------------------------------------------------------------------
+def test_parse_taxonomy_response_returns_categories():
+
+    response = {
+        "categorySuggestions": [
+            {
+                "category": {
+                    "categoryId": "170080",
+                    "categoryName": "Cartes mère: plaques arrière",
+                }
+            },
+            {
+                "category": {
+                    "categoryId": "1244",
+                    "categoryName": "Cartes mères",
+                }
+            },
+        ],
+        "categoryTreeId": "71",
+        "categoryTreeVersion": "120",
+    }
+
+    categories = parse_taxonomy_response(response)
+
+    assert len(categories) == 2
+    assert categories[0].id == "170080"
+    assert categories[1].id == "1244"
+
+
+# === Test 39 ======================================================
+#
+#   SearchQuery conserve la categorie choisie par l'utilisateur
+#
+# ------------------------------------------------------------------
+def test_search_query_stores_selected_category():
+
+    category = Category(
+        id="1244",
+        name="Cartes mères",
+    )
+
+    search = SearchQuery(
+        name="Carte mere X570",
+        query="X570 UNIFY",
+        category=category,
+    )
+
+    assert search.category == category
+
+
+# === Test 40 ======================================================
+#
+#   Comportement :
+#       EbayClient.search() transmet la categorie selectionnee
+#       a l'API Browse eBay.
+#
+#   GIVEN / Etant donne :
+#       une recherche "X570 UNIFY"
+#       et une categorie "Cartes mères" dont l'id est "1244"
+#
+#   WHEN / Quand :
+#       EbayClient.search() effectue la recherche
+#
+#   THEN / Alors :
+#       les parametres GET envoyes a eBay contiennent :
+#
+#           q = "X570 UNIFY"
+#           category_ids = "1244"
+#
+# ------------------------------------------------------------------
+def test_ebay_search_uses_selected_category():
+
+    # --------------------------------------------------------------
+    # ETANT DONNE - Des identifiants eBay factices pour le test
+    # --------------------------------------------------------------
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client HTTP espion qui enregistre les appels
+    #               effectues par EbayClient sans contacter eBay
+    # ------------------------------------------------------------------
+    http_client = SpyHttpClient()
+
+    # ---------------------------------------------------------------
+    # ETANT DONNE - Un client eBay configure avec les identifiants et
+    #               le client HTTP espion
+    # ---------------------------------------------------------------
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    # ---------------------------------------------------------------
+    # ETANT DONNE - Une categorie eBay selectionnee par l'utilisateur
+    # ---------------------------------------------------------------
+    category = Category(
+        id="1244",
+        name="Cartes mères",
+    )
+
+    # -----------------------------------------------------------------
+    # ETANT DONNE - Une recherche associe a la categorie selectionnee
+    # -----------------------------------------------------------------
+    search = SearchQuery(
+        name="Carte mere X570",
+        query="X570 UNIFY",
+        category=category,
+    )
+
+    # -------------------------------------------------------------------
+    # LORSQUE - Le client eBay (EbayClient) effectue la recherche dans
+    #           cette categorie
+    # -------------------------------------------------------------------
+    client.search(
+        query=search.query,
+        access_token="fake-access-token",
+        category_id=search.category.id,
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - La requete GET transmise a eBay contient le texte recherche
+    #         et l'identifiant de categorie sous le parametre category_ids
+    # ------------------------------------------------------------------
+    assert http_client.last_params == {
+        "q": "X570 UNIFY",
+        "category_ids": "1244",
+    }

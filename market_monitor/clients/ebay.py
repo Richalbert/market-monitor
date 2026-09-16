@@ -3,10 +3,10 @@
 # File        : market_monitor/clients/ebay.py
 # Author      : Richalbert
 # Created     : 2026-08-21
-# Last Update : 
+# Last Update :
 # Version     : 0.1
-# Description : 
-#             
+# Description :
+#
 # License     : MIT
 # ==============================================================================
 
@@ -14,10 +14,11 @@ from market_monitor.credentials.ebay import EbayCredentials
 
 import base64
 
+
 class EbayClient:
-    
+
     def __init__(
-        self, 
+        self,
         credentials: EbayCredentials,
         http_client=None,
         base_url="https://api.sandbox.ebay.com",
@@ -26,8 +27,7 @@ class EbayClient:
         self.http_client = http_client
         self.base_url = base_url
 
-
-    def get_access_token(self)-> str:
+    def get_access_token(self) -> str:
 
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -51,8 +51,7 @@ class EbayClient:
 
         # Construction des identifiants client_id:client_secret
         client_credentials = (
-            f"{self.credentials.client_id}:"
-            f"{self.credentials.client_secret}"
+            f"{self.credentials.client_id}:" f"{self.credentials.client_secret}"
         )
 
         # Conversion str -> bytes
@@ -67,25 +66,32 @@ class EbayClient:
         # Construction de la valeur du header Authorization
         return f"Basic {credentials_base64}"
 
-    def search(self, query: str, access_token: str):
+    def search(
+        self,
+        query: str,
+        access_token: str,
+        category_id: str | None = None,
+    ):
+
+        params = {
+            "q": query,
+        }
+
+        if category_id is not None:
+            params["category_ids"] = category_id
+
         return self.http_client.get(
             f"{self.base_url}/buy/browse/v1/item_summary/search",
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "X-EBAY-C-MARKETPLACE-ID": "EBAY_FR",
             },
-            params={"q": query},
+            params=params,
         )
 
-
-
-
-
     def get_category_suggestions(
-        self,
-        query: str,
-        access_token: str,
-        category_tree_id: int):
+        self, query: str, access_token: str, category_tree_id: int
+    ):
 
         url = (
             f"{self.base_url}/commerce/taxonomy/v1/"
