@@ -93,24 +93,26 @@ def test_parse_items():
 class StubEbayClient:
 
     def search(self, query):
-        return [
-            {
-                "title": "MSI MEG X570 UNIFY",
-                "price": {
-                    "value": "149.99",
-                    "currency": "EUR",
+        return {
+            "itemSummaries": [
+                {  # 1ere annonce
+                    "title": "MSI MEG X570 UNIFY",
+                    "price": {
+                        "value": "149.99",
+                        "currency": "EUR",
+                    },
+                    "itemWebUrl": "https://www.ebay.fr/itm/123",
                 },
-                "itemWebUrl": "https://www.ebay.fr/itm/123",
-            },
-            {
-                "title": "MSI X570 UNIFY + Ryzen",
-                "price": {
-                    "value": "220",
-                    "currency": "EUR",
+                {  # 2nd annonce
+                    "title": "MSI X570 UNIFY + Ryzen",
+                    "price": {
+                        "value": "220",
+                        "currency": "EUR",
+                    },
+                    "itemWebUrl": "https://www.ebay.fr/itm/456",
                 },
-                "itemWebUrl": "https://www.ebay.fr/itm/456",
-            },
-        ]
+            ]
+        }
 
 
 def test_ebay_source_search_returns_listings():
@@ -187,7 +189,7 @@ class SpyEbayClient:
         self.last_query = query
         self.last_category_id = category_id
 
-        return []
+        return {"itemSummaries": []}
 
 
 def test_ebay_source_transmits_selected_category():
@@ -327,3 +329,115 @@ def test_ebay_source_search_without_selected_category():
     #   Si EbaySource n'envoie aucune categorie, cette valeur reste None.
     # ------------------------------------------------------------------
     assert client.last_category_id is None
+
+
+# === Test 44 ======================================================
+#
+#   Comportement :
+#   EbaySource extrait les annonces contenues dans "itemSummaries"
+#   de la reponse Browse API avant de les transformer en Listing.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Un client eBay qui retourne une reponse ayant la vraie
+#       structure generale de la Browse API :
+#
+#           {
+#               "total": 1,
+#               "itemSummaries": [
+#                   {
+#                       "title": "...",
+#                       "price": {...},
+#                       "itemWebUrl": "...",
+#                   }
+#               ]
+#           }
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbaySource execute une recherche.
+#
+#
+#   ALORS / THEN :
+#
+#       EbaySource doit :
+#
+#       1. recuperer la liste sous la cle "itemSummaries"
+#
+#       2. transformer chacun de ces items eBay en objet Listing
+#
+#       3. retourner cette liste de Listing
+#
+#
+#   Pourquoi ce test est important :
+#
+#       Nos premiers Stubs retournaient directement une liste
+#       d'items pour simplifier les tests.
+#
+#       Mais la vraie Browse API retourne un dictionnaire contenant
+#       notamment "total", "limit", "offset" et "itemSummaries".
+#
+#       Ce test rapproche donc EbaySource du comportement reel
+#       observe avec l'API eBay Production.
+#
+# ------------------------------------------------------------------
+def test_ebay_source_extracts_item_summaries_from_browse_response():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un Stub du client eBay qui reproduit la structure
+    #               generale d'une vraie reponse Browse API.
+    # ------------------------------------------------------------------
+    class StubEbayClient:
+
+        def search(self, query, category_id=None):
+            return {
+                "total": 1,
+                "itemSummaries": [
+                    {
+                        "title": "MSI MEG X570 UNIFY",
+                        "price": {
+                            "value": "149.99",
+                            "currency": "EUR",
+                        },
+                        "itemWebUrl": "https://www.ebay.fr/itm/123",
+                    }
+                ],
+            }
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une source eBay utilisant ce Stub.
+    # ------------------------------------------------------------------
+    client = StubEbayClient()
+    source = EbaySource(client)
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une recherche MarketMonitor.
+    #
+    # La categorie ne nous interesse pas dans ce scenario :
+    # nous testons uniquement la structure de la reponse Browse.
+    # ------------------------------------------------------------------
+    search = SearchQuery(
+        name="Carte mere X570",
+        query="X570 UNIFY",
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - EbaySource execute la recherche.
+    # ------------------------------------------------------------------
+    listings = source.search(search)
+
+    # ------------------------------------------------------------------
+    # ALORS - Une annonce eBay doit avoir ete transformee en Listing.
+    # ------------------------------------------------------------------
+    assert len(listings) == 1
+
+    # ------------------------------------------------------------------
+    # ALORS - Les donnees du premier item eBay doivent etre conservees
+    #         dans notre modele Listing.
+    # ------------------------------------------------------------------
+    assert listings[0].title == "MSI MEG X570 UNIFY"
+    assert listings[0].price == 149.99
+    assert listings[0].url == "https://www.ebay.fr/itm/123"
+    assert listings[0].source == "ebay"

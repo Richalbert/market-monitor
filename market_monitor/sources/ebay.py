@@ -19,33 +19,23 @@ from market_monitor.models.listing import Listing
 
 class EbaySource(Source):
 
-    # EbaySource recoit la reponse de sa requete au site au format
-    # JSON qu elle conserve lors de l'initialisation de l'objet
     def __init__(self, client):
         self.client = client
 
-    # Une source a une methode de recherche
-    # qui a partir d'une requete SearchQuery.query
-    # fournit une liste de Listing
     def search(self, search: SearchQuery) -> list[Listing]:
 
-        # la requete (notre recherche) est
-        # search = search.query
-
-        # les items dans la reponse du client (le stub) sont
         if search.category is not None:
-            items = self.client.search(
+            response = self.client.search(
                 search.query,
                 category_id=search.category.id,
             )
         else:
-            items = self.client.search(search.query)
+            response = self.client.search(search.query)
 
-        # le resultat du parse d'items qui transforme
-        # le dictionnaire JSON en liste d'objet Listing est
+        items = response["itemSummaries"]
+
         results = parse_items(items)
 
-        # et on retourne la liste de Listing
         return results
 
 
