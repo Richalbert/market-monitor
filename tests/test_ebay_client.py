@@ -758,3 +758,105 @@ def test_ebay_search_uses_selected_category():
         "q": "X570 UNIFY",
         "category_ids": "1244",
     }
+
+
+# === Test 43 ======================================================
+#
+#   Comportement :
+#       EbayClient.search() n'ajoute pas le parametre category_ids
+#       lorsqu'aucune categorie n'a ete selectionnee.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Un client eBay capable d'effectuer une recherche.
+#
+#       Une recherche :
+#
+#           query = "X570 UNIFY"
+#
+#       sans categorie :
+#
+#           category_id = None
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbayClient.search() construit la requete HTTP vers
+#       l'API Browse eBay.
+#
+#
+#   ALORS / THEN :
+#
+#       les parametres GET doivent contenir :
+#
+#           q = "X570 UNIFY"
+#
+#       mais ne doivent PAS contenir :
+#
+#           category_ids
+#
+#
+#   Ce test protege un point important :
+#
+#       category_id est facultatif.
+#
+#   L'ajout du filtrage par categorie ne doit donc pas modifier
+#   les recherches qui n'utilisent pas de categorie.
+#
+# ------------------------------------------------------------------
+def test_ebay_search_without_category_does_not_send_category_ids():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Des identifiants eBay factices.
+    #
+    #   Ils ne servent qu'a construire EbayClient.
+    #   Aucun appel reel a eBay n'est effectue pendant ce test.
+    # ------------------------------------------------------------------
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client HTTP espion.
+    #
+    #   SpyHttpClient enregistre les parametres que EbayClient souhaite
+    #   transmettre, sans effectuer de connexion reseau.
+    # ------------------------------------------------------------------
+    http_client = SpyHttpClient()
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client eBay utilisant cet espion HTTP.
+    # ------------------------------------------------------------------
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Une recherche est effectuee sans category_id.
+    #
+    #   Comme category_id vaut None par defaut, nous ne sommes meme
+    #   pas obliges de l'ecrire explicitement.
+    # ------------------------------------------------------------------
+    client.search(
+        query="X570 UNIFY",
+        access_token="fake-access-token",
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - Le texte de recherche doit bien etre transmis.
+    # ------------------------------------------------------------------
+    assert http_client.last_params["q"] == "X570 UNIFY"
+
+    # ------------------------------------------------------------------
+    # ALORS - category_ids ne doit pas exister dans les parametres GET.
+    #
+    #   Ce n'est pas la meme chose que :
+    #
+    #     "category_ids": None
+    #
+    #   Nous voulons que le parametre soit totalement absent.
+    # ------------------------------------------------------------------
+    assert "category_ids" not in http_client.last_params
