@@ -231,3 +231,99 @@ def test_ebay_source_transmits_selected_category():
     # ------------------------------------------------------------------
     assert client.last_query == "X570 UNIFY"
     assert client.last_category_id == "1244"
+
+
+# === Test 42 ======================================================
+#
+#   Comportement :
+#       EbaySource doit pouvoir effectuer une recherche lorsqu'aucune
+#       categorie eBay n'a ete selectionnee.
+#
+#       Ce test protege le comportement historique de MarketMonitor :
+#       une SearchQuery peut contenir uniquement un texte de recherche.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une recherche :
+#
+#           query = "X570 UNIFY"
+#
+#       sans categorie :
+#
+#           category = None
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbaySource execute cette recherche.
+#
+#
+#   ALORS / THEN :
+#
+#       EbayClient doit recevoir :
+#
+#           query = "X570 UNIFY"
+#
+#       mais aucune categorie particuliere :
+#
+#           category_id = None
+#
+#
+#   Ce comportement garantit que l'ajout des categories n'a pas
+#   casse les anciennes recherches.
+#
+# ------------------------------------------------------------------
+def test_ebay_source_search_without_selected_category():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client eBay espion.
+    #
+    #   Le Spy ne contacte pas eBay.
+    #   Il enregistre simplement les informations que EbaySource
+    #   lui transmet afin que nous puissions ensuite les verifier.
+    # ------------------------------------------------------------------
+    client = SpyEbayClient()
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une source eBay utilisant notre client espion.
+    #
+    #   EbaySource est la couche que nous testons ici.
+    # ------------------------------------------------------------------
+    source = EbaySource(client)
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une recherche sans categorie selectionnee.
+    #
+    #   Nous ne passons volontairement PAS :
+    #
+    #     category=...
+    #
+    #   Comme SearchQuery.category vaut None par defaut,
+    #   cette recherche represente l'ancien fonctionnement
+    #   de MarketMonitor.
+    # ------------------------------------------------------------------
+    search = SearchQuery(
+        name="Carte mere X570",
+        query="X570 UNIFY",
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - EbaySource execute cette recherche.
+    #
+    #   C'est l'ACTION du scenario BDD.
+    # ------------------------------------------------------------------
+    source.search(search)
+
+    # ------------------------------------------------------------------
+    # ALORS - Le texte de recherche doit etre transmis au client eBay.
+    # ------------------------------------------------------------------
+    assert client.last_query == "X570 UNIFY"
+
+    # ------------------------------------------------------------------
+    # ALORS - Aucune categorie ne doit avoir ete transmise.
+    #
+    #   Notre Spy initialise last_category_id a None.
+    #   Si EbaySource n'envoie aucune categorie, cette valeur reste None.
+    # ------------------------------------------------------------------
+    assert client.last_category_id is None
