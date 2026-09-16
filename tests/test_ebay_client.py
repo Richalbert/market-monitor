@@ -16,6 +16,10 @@
 from market_monitor.credentials.ebay import EbayCredentials
 from market_monitor.clients.ebay import EbayClient
 
+from market_monitor.categories import ( 
+    parse_category_suggestion,
+    parse_category_suggestions,
+)
 
 # === Test 13 ======================================
 #
@@ -558,3 +562,55 @@ def test_ebay_client_gets_category_suggestions():
     )
     assert http_client.last_params == {"q": "X570 UNIFY",}
     assert http_client.last_headers["Authorization"] == ("Bearer fake-token")
+
+
+
+# === Test 36 ======================================================
+#
+#   Teste une seule suggestion de categorie de l'API Taxonomy eBay
+#
+# ------------------------------------------------------------------
+def test_parse_category_suggestion():
+
+    suggestion = {
+        "category": {
+            "categoryId": "1244",
+            "categoryName": "Cartes mères",
+        }
+    }
+
+    category = parse_category_suggestion(suggestion)
+
+    assert category.id == "1244"
+    assert category.name == "Cartes mères"
+
+
+
+# === Test 37 ======================================================
+#
+#   Teste a partir de plusieurs suggestions Taxonomy obtenir
+#   une liste de category
+#
+# ------------------------------------------------------------------
+def test_parse_category_suggestions():
+
+    suggestions = [
+        {
+            "category": {
+                "categoryId": "170080",
+                "categoryName": "Cartes mère: plaques arrière",
+            }
+        },
+        {
+            "category": {
+                "categoryId": "1244",
+                "categoryName": "Cartes mères",
+            }
+        },
+    ]
+
+    categories = parse_category_suggestions(suggestions)
+
+    assert len(categories) == 2
+    assert categories[0].id == "170080"
+    assert categories[1].id == "1244"
