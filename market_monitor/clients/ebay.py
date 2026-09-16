@@ -69,9 +69,12 @@ class EbayClient:
     def search(
         self,
         query: str,
-        access_token: str,
+        access_token: str | None = None,
         category_id: str | None = None,
     ):
+
+        if access_token is None:
+            access_token = self.get_access_token()
 
         params = {
             "q": query,

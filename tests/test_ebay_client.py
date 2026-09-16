@@ -860,3 +860,103 @@ def test_ebay_search_without_category_does_not_send_category_ids():
     #   Nous voulons que le parametre soit totalement absent.
     # ------------------------------------------------------------------
     assert "category_ids" not in http_client.last_params
+
+
+# === Test 46 ======================================================
+#
+#   Comportement :
+#   EbayClient.search() obtient lui-meme un access_token lorsque
+#   aucun token ne lui est fourni.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Un EbayClient configure avec :
+#
+#           - des credentials eBay factices
+#           - un client HTTP espion
+#
+#       Le client HTTP simule la reponse OAuth :
+#
+#           {
+#               "access_token": "fake-access-token"
+#           }
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbayClient.search() est appele uniquement avec :
+#
+#           query = "X570 UNIFY"
+#
+#       sans fournir explicitement access_token.
+#
+#
+#   ALORS / THEN :
+#
+#       EbayClient doit obtenir lui-meme un token OAuth
+#       avec get_access_token().
+#
+#       Puis il doit utiliser ce token pour construire :
+#
+#           Authorization: Bearer fake-access-token
+#
+#       dans la requete Browse.
+#
+#
+#   Pourquoi ce test est important :
+#
+#       EbaySource ne doit pas avoir besoin de connaitre OAuth.
+#
+#       La gestion de l'authentification eBay reste ainsi
+#       encapsulee dans EbayClient.
+#
+# ------------------------------------------------------------------
+def test_ebay_search_gets_access_token_when_not_provided():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Des identifiants eBay factices.
+    #
+    # Ils permettent a get_access_token() de construire la requete OAuth,
+    # mais aucune vraie connexion eBay n'est effectuee.
+    # ------------------------------------------------------------------
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client HTTP espion.
+    #
+    # Son post() simule la reponse OAuth contenant :
+    #
+    #     "access_token": "fake-access-token"
+    #
+    # et son get() enregistre ensuite la requete Browse.
+    # ------------------------------------------------------------------
+    http_client = SpyHttpClient()
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client eBay utilisant cet espion HTTP.
+    # ------------------------------------------------------------------
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Une recherche est effectuee SANS fournir access_token.
+    #
+    # C'est volontaire :
+    #
+    # nous voulons que EbayClient prenne en charge l'authentification.
+    # ------------------------------------------------------------------
+    client.search(
+        query="X570 UNIFY",
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - La requete Browse doit utiliser le token obtenu
+    #         automatiquement par EbayClient.
+    # ------------------------------------------------------------------
+    assert http_client.last_headers["Authorization"] == ("Bearer fake-access-token")
