@@ -32,7 +32,7 @@ class EbaySource(Source):
         else:
             response = self.client.search(search.query)
 
-        items = response["itemSummaries"]
+        items = response.get("itemSummaries", [])
 
         results = parse_items(items)
 

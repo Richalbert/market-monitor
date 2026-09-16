@@ -441,3 +441,87 @@ def test_ebay_source_extracts_item_summaries_from_browse_response():
     assert listings[0].price == 149.99
     assert listings[0].url == "https://www.ebay.fr/itm/123"
     assert listings[0].source == "ebay"
+
+
+# === Test 45 ======================================================
+#
+#   Comportement :
+#   EbaySource retourne une liste vide lorsque la reponse Browse
+#   ne contient aucune annonce.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Un client eBay qui retourne une reponse Browse sans
+#       "itemSummaries".
+#
+#       Exemple :
+#
+#           {
+#               "total": 0
+#           }
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbaySource execute une recherche.
+#
+#
+#   ALORS / THEN :
+#
+#       EbaySource ne doit pas provoquer d'erreur.
+#
+#       Il doit retourner :
+#
+#           []
+#
+#
+#   Pourquoi ce test est important :
+#
+#       Une absence de resultat est une situation normale.
+#
+#       "Aucune annonce trouvee" n'est pas une erreur du programme.
+#
+#       EbaySource doit donc transformer l'absence de
+#       "itemSummaries" en une liste vide de Listing.
+#
+# ------------------------------------------------------------------
+def test_ebay_source_returns_empty_list_when_no_item_summaries():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client eBay simulant une recherche sans resultat.
+    #
+    # La reponse contient total=0 mais aucune cle "itemSummaries".
+    # ------------------------------------------------------------------
+    class StubEbayClient:
+
+        def search(self, query, category_id=None):
+            return {
+                "total": 0,
+            }
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une source eBay utilisant ce client simule.
+    # ------------------------------------------------------------------
+    client = StubEbayClient()
+    source = EbaySource(client)
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une recherche MarketMonitor.
+    # ------------------------------------------------------------------
+    search = SearchQuery(
+        name="Carte mere X570",
+        query="X570 UNIFY",
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - EbaySource execute la recherche.
+    # ------------------------------------------------------------------
+    listings = source.search(search)
+
+    # ------------------------------------------------------------------
+    # ALORS - Aucune annonce signifie une liste vide.
+    #
+    # Ce comportement est normal et ne doit pas provoquer d'exception.
+    # ------------------------------------------------------------------
+    assert listings == []
