@@ -95,12 +95,18 @@ class EbayClient:
     def get_category_suggestions(
         self,
         query: str,
-        category_tree_id: int,
+        category_tree_id: str | None = None,
         access_token: str | None = None,
     ):
 
         if access_token is None:
             access_token = self.get_access_token()
+
+        if category_tree_id is None:
+            category_tree_id = self.get_default_category_tree_id(
+                marketplace_id="EBAY_FR",
+                access_token=access_token,
+            )
 
         url = (
             f"{self.base_url}/commerce/taxonomy/v1/"
@@ -116,3 +122,24 @@ class EbayClient:
                 "q": query,
             },
         )
+
+    def get_default_category_tree_id(
+        self,
+        marketplace_id: str,
+        access_token: str | None = None,
+    ) -> str:
+
+        if access_token is None:
+            access_token = self.get_access_token()
+
+        response = self.http_client.get(
+            f"{self.base_url}/commerce/taxonomy/v1/" "get_default_category_tree_id",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+            },
+            params={
+                "marketplace_id": marketplace_id,
+            },
+        )
+
+        return response["categoryTreeId"]

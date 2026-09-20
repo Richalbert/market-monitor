@@ -1074,3 +1074,375 @@ def test_category_suggestions_get_access_token_when_not_provided():
     #         automatiquement par EbayClient.
     # ------------------------------------------------------------------
     assert http_client.last_headers["Authorization"] == ("Bearer fake-access-token")
+
+
+# === Test 48 ======================================================
+#
+#   Comportement :
+#   EbayClient sait obtenir l'identifiant de l'arbre de categories
+#   utilise par le marketplace eBay France.
+#
+#
+#   CONTEXTE :
+#
+#   La Taxonomy API ne peut pas recevoir directement :
+#
+#       "X570 UNIFY"
+#
+#   sans savoir dans quel arbre de categories chercher.
+#
+#   Pour EBAY_FR, eBay nous avait retourne lors de notre
+#   experimentation Production :
+#
+#       categoryTreeId = "71"
+#
+#   Mais MarketMonitor ne doit pas avoir besoin de connaitre
+#   cette valeur a l'avance ni de la coder en dur.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Un client eBay.
+#
+#       Un client HTTP fictif capable de simuler la reponse
+#       de l'API Taxonomy :
+#
+#           {
+#               "categoryTreeId": "71",
+#               "categoryTreeVersion": "120",
+#           }
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbayClient demande l'arbre de categories par defaut
+#       pour le marketplace :
+#
+#           EBAY_FR
+#
+#
+#   ALORS / THEN :
+#
+#       EbayClient doit retourner :
+#
+#           "71"
+#
+#
+#   Ce test introduit une nouvelle responsabilite :
+#
+#       EBAY_FR
+#           ↓
+#       EbayClient
+#           ↓
+#       Taxonomy API
+#           ↓
+#       categoryTreeId = "71"
+#
+# ------------------------------------------------------------------
+
+
+class StubCategoryTreeHttpClient:
+
+    def get(self, url, headers=None, params=None):
+        return {
+            "categoryTreeId": "71",
+            "categoryTreeVersion": "120",
+        }
+
+
+def test_ebay_client_gets_default_category_tree_id():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Des identifiants eBay factices.
+    #
+    # Aucun acces reel a eBay n'est effectue dans ce test.
+    # ------------------------------------------------------------------
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client HTTP qui simule la reponse Taxonomy.
+    # ------------------------------------------------------------------
+    http_client = StubCategoryTreeHttpClient()
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client eBay utilisant ce composant HTTP fictif.
+    # ------------------------------------------------------------------
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - EbayClient demande l'arbre de categories de EBAY_FR.
+    #
+    # Nous fournissons ici volontairement un faux token afin que
+    # ce test ne teste qu'UNE seule chose :
+    #
+    #     obtenir categoryTreeId
+    #
+    # Le comportement "obtenir automatiquement le token" est deja
+    # couvert par nos tests precedents.
+    # ------------------------------------------------------------------
+    category_tree_id = client.get_default_category_tree_id(
+        marketplace_id="EBAY_FR",
+        access_token="fake-access-token",
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - L'identifiant extrait de la reponse eBay doit etre "71".
+    # ------------------------------------------------------------------
+    assert category_tree_id == "71"
+
+
+# === Test 49 ======================================================
+#
+#   Comportement :
+#   EbayClient construit correctement la requete HTTP permettant
+#   d'obtenir l'arbre de categories par defaut de EBAY_FR.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Un client eBay.
+#
+#       Un token OAuth :
+#
+#           "fake-access-token"
+#
+#       Un marketplace :
+#
+#           "EBAY_FR"
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbayClient demande l'identifiant de l'arbre de categories
+#       par defaut.
+#
+#
+#   ALORS / THEN :
+#
+#       le client HTTP doit recevoir :
+#
+#       URL :
+#
+#           /commerce/taxonomy/v1/get_default_category_tree_id
+#
+#       parametre GET :
+#
+#           marketplace_id = "EBAY_FR"
+#
+#       header :
+#
+#           Authorization = "Bearer fake-access-token"
+#
+#
+#   Le test 48 verifiait la REPONSE :
+#
+#       JSON eBay -> "71"
+#
+#   Le test 49 verifie maintenant la REQUETE :
+#
+#       MarketMonitor -> requete HTTP correcte vers eBay
+#
+# ------------------------------------------------------------------
+
+
+class SpyCategoryTreeHttpClient:
+
+    def __init__(self):
+        self.last_url = None
+        self.last_headers = None
+        self.last_params = None
+
+    def get(self, url, headers=None, params=None):
+
+        # --------------------------------------------------------------
+        # Le Spy memorise tout ce que EbayClient tente d'envoyer.
+        # --------------------------------------------------------------
+        self.last_url = url
+        self.last_headers = headers
+        self.last_params = params
+
+        # --------------------------------------------------------------
+        # Nous devons egalement retourner une reponse valide afin que
+        # get_default_category_tree_id() puisse terminer normalement.
+        # --------------------------------------------------------------
+        return {
+            "categoryTreeId": "71",
+            "categoryTreeVersion": "120",
+        }
+
+
+def test_ebay_client_builds_default_category_tree_request():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Des identifiants factices.
+    # ------------------------------------------------------------------
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client HTTP espion.
+    #
+    # Contrairement au Stub du test 48, celui-ci nous permet surtout
+    # d'observer ce que EbayClient lui transmet.
+    # ------------------------------------------------------------------
+    http_client = SpyCategoryTreeHttpClient()
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client eBay utilisant ce Spy.
+    # ------------------------------------------------------------------
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Le client demande l'arbre de categories de EBAY_FR.
+    # ------------------------------------------------------------------
+    client.get_default_category_tree_id(
+        marketplace_id="EBAY_FR",
+        access_token="fake-access-token",
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - Le bon endpoint Taxonomy doit etre utilise.
+    # ------------------------------------------------------------------
+    assert http_client.last_url == (
+        "https://api.sandbox.ebay.com/commerce/taxonomy/v1/"
+        "get_default_category_tree_id"
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - Le marketplace doit etre transmis en parametre GET.
+    # ------------------------------------------------------------------
+    assert http_client.last_params == {
+        "marketplace_id": "EBAY_FR",
+    }
+
+    # ------------------------------------------------------------------
+    # ALORS - Le token doit etre transmis sous forme Bearer.
+    # ------------------------------------------------------------------
+    assert http_client.last_headers["Authorization"] == ("Bearer fake-access-token")
+
+
+# === Test 50 ======================================================
+#
+#   Comportement :
+#   EbayClient.get_category_suggestions() peut determiner
+#   automatiquement l'arbre de categories de EBAY_FR lorsqu'aucun
+#   category_tree_id n'est fourni.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une recherche :
+#
+#           "X570 UNIFY"
+#
+#       sans category_tree_id fourni par l'appelant.
+#
+#       Le client HTTP simule successivement :
+#
+#           EBAY_FR -> categoryTreeId "71"
+#
+#       puis :
+#
+#           arbre 71 -> suggestions de categories
+#
+#
+#   LORSQUE / WHEN :
+#
+#       get_category_suggestions() est appelee uniquement avec
+#       la requete et un token.
+#
+#
+#   ALORS / THEN :
+#
+#       EbayClient doit obtenir lui-meme categoryTreeId "71"
+#       puis retourner les suggestions Taxonomy.
+#
+# ------------------------------------------------------------------
+
+
+class StubAutomaticTaxonomyHttpClient:
+
+    def get(self, url, headers=None, params=None):
+
+        # --------------------------------------------------------------
+        # Premiere requete :
+        # EbayClient cherche l'arbre par defaut de EBAY_FR.
+        # --------------------------------------------------------------
+        if url.endswith("get_default_category_tree_id"):
+            return {
+                "categoryTreeId": "71",
+                "categoryTreeVersion": "120",
+            }
+
+        # --------------------------------------------------------------
+        # Deuxieme requete :
+        # EbayClient utilise l'arbre obtenu pour demander les
+        # suggestions de categories.
+        # --------------------------------------------------------------
+        if "get_category_suggestions" in url:
+            return {
+                "categorySuggestions": [
+                    {
+                        "category": {
+                            "categoryId": "1244",
+                            "categoryName": "Cartes mères",
+                        }
+                    }
+                ],
+                "categoryTreeId": "71",
+                "categoryTreeVersion": "120",
+            }
+
+        raise AssertionError(f"URL inattendue : {url}")
+
+
+def test_category_suggestions_gets_category_tree_automatically():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Des identifiants factices.
+    # ------------------------------------------------------------------
+    credentials = EbayCredentials(
+        client_id="fake-client-id",
+        client_secret="fake-client-secret",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un HTTP Stub simulant les deux reponses Taxonomy.
+    # ------------------------------------------------------------------
+    http_client = StubAutomaticTaxonomyHttpClient()
+
+    client = EbayClient(
+        credentials=credentials,
+        http_client=http_client,
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Nous demandons les suggestions SANS fournir
+    #           category_tree_id.
+    # ------------------------------------------------------------------
+    suggestions = client.get_category_suggestions(
+        query="X570 UNIFY",
+        access_token="fake-access-token",
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - Les suggestions obtenues utilisent bien l'arbre "71"
+    #         que EbayClient a du decouvrir automatiquement.
+    # ------------------------------------------------------------------
+    assert suggestions["categoryTreeId"] == "71"
+
+    assert suggestions["categorySuggestions"][0]["category"] == {
+        "categoryId": "1244",
+        "categoryName": "Cartes mères",
+    }
