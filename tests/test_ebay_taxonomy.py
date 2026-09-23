@@ -120,3 +120,95 @@ def test_ebay_taxonomy_returns_categories():
     # ------------------------------------------------------------------
     assert categories[1].id == "1244"
     assert categories[1].name == "Cartes mères"
+
+
+# === Test 52 ======================================================
+#
+#   Comportement :
+#   EbayTaxonomy transmet correctement la requete de recherche
+#   au client eBay.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Un client eBay espion.
+#
+#       Ce client ne contacte pas Internet.
+#       Il memorise simplement la requete recue par :
+#
+#           get_category_suggestions()
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbayTaxonomy demande les categories correspondant a :
+#
+#           "X570 UNIFY"
+#
+#
+#   ALORS / THEN :
+#
+#       le client eBay doit avoir recu exactement :
+#
+#           "X570 UNIFY"
+#
+#
+#   POURQUOI CE TEST ?
+#
+#       Le test 51 verifie ce que EbayTaxonomy RETOURNE.
+#
+#       Le test 52 verifie ce que EbayTaxonomy TRANSMET
+#       a EbayClient.
+#
+# ------------------------------------------------------------------
+
+
+class SpyEbayClient:
+
+    def __init__(self):
+        self.last_query = None
+
+    def get_category_suggestions(self, query):
+
+        # --------------------------------------------------------------
+        # Le Spy memorise la requete recue.
+        # --------------------------------------------------------------
+        self.last_query = query
+
+        # --------------------------------------------------------------
+        # Il retourne une reponse Taxonomy valide mais vide.
+        #
+        # Le contenu des categories ne nous interesse pas dans ce test :
+        # nous voulons uniquement observer la requete transmise.
+        # --------------------------------------------------------------
+        return {
+            "categorySuggestions": [],
+            "categoryTreeId": "71",
+            "categoryTreeVersion": "120",
+        }
+
+
+def test_ebay_taxonomy_transmits_query_to_client():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un client eBay espion.
+    # ------------------------------------------------------------------
+    client = SpyEbayClient()
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - EbayTaxonomy utilisant ce client.
+    # ------------------------------------------------------------------
+    taxonomy = EbayTaxonomy(client)
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Nous demandons les categories correspondant
+    #           a "X570 UNIFY".
+    # ------------------------------------------------------------------
+    taxonomy.suggest_categories(
+        query="X570 UNIFY",
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - Le client eBay doit avoir recu exactement cette requete.
+    # ------------------------------------------------------------------
+    assert client.last_query == "X570 UNIFY"
