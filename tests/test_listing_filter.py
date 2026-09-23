@@ -266,3 +266,171 @@ def test_listing_is_not_relevant_when_excluded_term_matches():
     # ALORS - L'exclusion doit avoir priorite sur l'inclusion.
     # ------------------------------------------------------------------
     assert relevant is False
+
+
+# === Test 57 ======================================================
+#
+#   Comportement :
+#   La recherche des termes inclus dans le titre d'une annonce
+#   est insensible aux majuscules et aux minuscules.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une annonce dont le titre contient :
+#
+#           "X570"
+#
+#       en majuscules :
+#
+#           "MSI MEG X570 UNIFY AM4 ATX"
+#
+#       et un terme inclus ecrit en minuscules :
+#
+#           "x570"
+#
+#
+#   LORSQUE / WHEN :
+#
+#       MarketMonitor evalue la pertinence de cette annonce.
+#
+#
+#   ALORS / THEN :
+#
+#       l'annonce doit etre consideree comme pertinente.
+#
+#
+#   POURQUOI CE TEST ?
+#
+#       Pour la pertinence d'une annonce :
+#
+#           "X570"
+#           "x570"
+#
+#       representent le meme terme.
+#
+#       La casse ne doit donc pas modifier le resultat
+#       du filtrage.
+#
+#
+#   REGLE METIER INTRODUITE :
+#
+#       La comparaison des include_terms avec le titre
+#       est insensible a la casse.
+#
+# ------------------------------------------------------------------
+def test_included_term_matching_is_case_insensitive():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une annonce contenant "X570" en majuscules.
+    # ------------------------------------------------------------------
+    listing = Listing(
+        title="MSI MEG X570 UNIFY AM4 ATX",
+        price=149.99,
+        url="https://www.ebay.fr/itm/123",
+        source="ebay",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Le meme terme, mais ecrit en minuscules.
+    # ------------------------------------------------------------------
+    include_terms = [
+        "x570",
+    ]
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Le filtre evalue l'annonce.
+    # ------------------------------------------------------------------
+    relevant = is_relevant_listing(
+        listing,
+        include_terms=include_terms,
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - La difference de casse ne doit pas provoquer de rejet.
+    # ------------------------------------------------------------------
+    assert relevant is True
+
+
+# === Test 58 ======================================================
+#
+#   Comportement :
+#   La recherche des termes exclus dans le titre d'une annonce
+#   est insensible aux majuscules et aux minuscules.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une annonce dont le titre contient :
+#
+#           "BROKEN"
+#
+#       en majuscules :
+#
+#           "MSI MEG X570 UNIFY BROKEN"
+#
+#       et un terme exclu ecrit en minuscules :
+#
+#           "broken"
+#
+#
+#   LORSQUE / WHEN :
+#
+#       MarketMonitor evalue la pertinence de cette annonce.
+#
+#
+#   ALORS / THEN :
+#
+#       l'annonce doit etre consideree comme non pertinente.
+#
+#
+#   POURQUOI CE TEST ?
+#
+#       Pour une exclusion :
+#
+#           "BROKEN"
+#           "broken"
+#
+#       representent le meme terme.
+#
+#       La casse ne doit donc pas modifier le comportement
+#       du filtre.
+#
+#
+#   REGLE METIER PROTEGEE :
+#
+#       La comparaison des exclude_terms avec le titre
+#       est insensible a la casse.
+#
+# ------------------------------------------------------------------
+def test_excluded_term_matching_is_case_insensitive():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une annonce contenant "BROKEN" en majuscules.
+    # ------------------------------------------------------------------
+    listing = Listing(
+        title="MSI MEG X570 UNIFY BROKEN",
+        price=99.99,
+        url="https://www.ebay.fr/itm/789",
+        source="ebay",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Le meme terme exclu, mais ecrit en minuscules.
+    # ------------------------------------------------------------------
+    exclude_terms = [
+        "broken",
+    ]
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Le filtre evalue l'annonce.
+    # ------------------------------------------------------------------
+    relevant = is_relevant_listing(
+        listing,
+        exclude_terms=exclude_terms,
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - La difference de casse ne doit pas empecher l'exclusion.
+    # ------------------------------------------------------------------
+    assert relevant is False
