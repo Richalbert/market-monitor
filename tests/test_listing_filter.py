@@ -434,3 +434,162 @@ def test_excluded_term_matching_is_case_insensitive():
     # ALORS - La difference de casse ne doit pas empecher l'exclusion.
     # ------------------------------------------------------------------
     assert relevant is False
+
+
+# === Test 59 ======================================================
+#
+#   Comportement :
+#   Une liste include_terms vide ne doit pas rejeter une annonce.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une annonce :
+#
+#           "MSI MEG X570 UNIFY AM4 ATX"
+#
+#       et aucune regle d'inclusion supplementaire :
+#
+#           include_terms = []
+#
+#
+#   LORSQUE / WHEN :
+#
+#       MarketMonitor evalue la pertinence de cette annonce.
+#
+#
+#   ALORS / THEN :
+#
+#       l'annonce doit rester pertinente.
+#
+#
+#   POURQUOI CE TEST ?
+#
+#       include_terms n'est pas la requete de recherche.
+#
+#       La recherche a deja ete effectuee par eBay avec par exemple :
+#
+#           query = "X570 UNIFY"
+#           category_id = "1244"
+#
+#       Une liste vide signifie simplement :
+#
+#           "aucun filtre positif supplementaire"
+#
+#       Elle doit donc avoir le meme effet que :
+#
+#           include_terms = None
+#
+#
+#   REGLE METIER PROTEGEE :
+#
+#       None -> pas de filtre d'inclusion
+#       []   -> pas de filtre d'inclusion
+#
+# ------------------------------------------------------------------
+def test_empty_include_terms_does_not_reject_listing():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une annonce valide.
+    # ------------------------------------------------------------------
+    listing = Listing(
+        title="MSI MEG X570 UNIFY AM4 ATX",
+        price=149.99,
+        url="https://www.ebay.fr/itm/123",
+        source="ebay",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Aucune regle positive supplementaire.
+    # ------------------------------------------------------------------
+    include_terms = []
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Le filtre evalue l'annonce.
+    # ------------------------------------------------------------------
+    relevant = is_relevant_listing(
+        listing,
+        include_terms=include_terms,
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - Une liste vide ne doit pas provoquer le rejet.
+    # ------------------------------------------------------------------
+    assert relevant is True
+
+
+# === Test 60 ======================================================
+#
+#   Comportement :
+#   Une liste exclude_terms vide ne doit pas rejeter une annonce.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une annonce :
+#
+#           "MSI MEG X570 UNIFY AM4 ATX"
+#
+#       et aucune regle d'exclusion :
+#
+#           exclude_terms = []
+#
+#
+#   LORSQUE / WHEN :
+#
+#       MarketMonitor evalue la pertinence de cette annonce.
+#
+#
+#   ALORS / THEN :
+#
+#       l'annonce doit rester pertinente.
+#
+#
+#   POURQUOI CE TEST ?
+#
+#       exclude_terms n'est pas la recherche elle-meme.
+#
+#       Une liste vide signifie simplement :
+#
+#           "aucun terme supplementaire a exclure"
+#
+#       Elle doit donc avoir le meme effet que :
+#
+#           exclude_terms = None
+#
+#
+#   REGLE METIER PROTEGEE :
+#
+#       None -> aucune exclusion
+#       []   -> aucune exclusion
+#
+# ------------------------------------------------------------------
+def test_empty_exclude_terms_does_not_reject_listing():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une annonce valide.
+    # ------------------------------------------------------------------
+    listing = Listing(
+        title="MSI MEG X570 UNIFY AM4 ATX",
+        price=149.99,
+        url="https://www.ebay.fr/itm/123",
+        source="ebay",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Aucune regle negative supplementaire.
+    # ------------------------------------------------------------------
+    exclude_terms = []
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Le filtre evalue l'annonce.
+    # ------------------------------------------------------------------
+    relevant = is_relevant_listing(
+        listing,
+        exclude_terms=exclude_terms,
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - Une liste vide ne doit pas provoquer le rejet.
+    # ------------------------------------------------------------------
+    assert relevant is True

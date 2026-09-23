@@ -25,7 +25,7 @@ def is_relevant_listing(
     # Si aucun terme d'inclusion n'est fourni,
     # on ne rajoute aucune restriction positive.
     # --------------------------------------------------------------
-    if include_terms is None:
+    if not include_terms:
         return True
 
     # --------------------------------------------------------------
