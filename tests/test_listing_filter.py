@@ -593,3 +593,184 @@ def test_empty_exclude_terms_does_not_reject_listing():
     # ALORS - Une liste vide ne doit pas provoquer le rejet.
     # ------------------------------------------------------------------
     assert relevant is True
+
+
+#
+# === Test 61 ======================================================
+#
+#   Comportement :
+#   Des termes d'exclusion qui ne correspondent pas au titre
+#   ne doivent pas provoquer le rejet de l'annonce.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une annonce :
+#
+#           "MSI MEG X570 UNIFY AM4 ATX"
+#
+#       et plusieurs termes d'exclusion :
+#
+#           "broken"
+#           "damaged"
+#           "for parts"
+#
+#       dont aucun n'apparait dans le titre.
+#
+#
+#   LORSQUE / WHEN :
+#
+#       MarketMonitor evalue la pertinence de cette annonce.
+#
+#
+#   ALORS / THEN :
+#
+#       l'annonce doit rester pertinente.
+#
+#
+#   POURQUOI CE TEST ?
+#
+#       La presence de termes dans exclude_terms ne signifie pas
+#       que toutes les annonces doivent etre rejetees.
+#
+#       Le rejet doit avoir lieu uniquement si au moins un terme
+#       exclu correspond effectivement au titre.
+#
+#
+#   REGLE METIER PROTEGEE :
+#
+#       Aucun terme exclu ne correspond
+#           -> pas de veto
+#           -> l'annonce continue normalement son evaluation.
+#
+# ------------------------------------------------------------------
+def test_non_matching_exclude_terms_do_not_reject_listing():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une annonce qui ne contient aucun terme interdit.
+    # ------------------------------------------------------------------
+    listing = Listing(
+        title="MSI MEG X570 UNIFY AM4 ATX",
+        price=149.99,
+        url="https://www.ebay.fr/itm/123",
+        source="ebay",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Plusieurs termes d'exclusion sans correspondance.
+    # ------------------------------------------------------------------
+    exclude_terms = [
+        "broken",
+        "damaged",
+        "for parts",
+    ]
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Le filtre evalue l'annonce.
+    # ------------------------------------------------------------------
+    relevant = is_relevant_listing(
+        listing,
+        exclude_terms=exclude_terms,
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - Aucun veto n'a ete trouve.
+    # ------------------------------------------------------------------
+    assert relevant is True
+
+
+# === Test 62 ======================================================
+#
+#   Comportement :
+#   Si au moins un terme parmi plusieurs exclude_terms correspond
+#   au titre, l'annonce doit etre rejetee.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une annonce :
+#
+#           "MSI MEG X570 UNIFY DAMAGED"
+#
+#       et plusieurs termes d'exclusion :
+#
+#           "broken"
+#           "damaged"
+#           "for parts"
+#
+#       Le premier terme ne correspond pas.
+#       Le deuxieme terme correspond.
+#       Le troisieme n'a donc pas besoin de correspondre.
+#
+#
+#   LORSQUE / WHEN :
+#
+#       MarketMonitor evalue la pertinence de cette annonce.
+#
+#
+#   ALORS / THEN :
+#
+#       l'annonce doit etre rejetee.
+#
+#
+#   POURQUOI CE TEST ?
+#
+#       exclude_terms fonctionne comme une liste de vetos.
+#
+#       Il n'est pas necessaire que tous les termes correspondent.
+#
+#       Une seule correspondance suffit :
+#
+#           broken    -> False
+#           damaged   -> True
+#           for parts -> peu importe
+#
+#       donc :
+#
+#           False OR True OR ...
+#               -> True
+#               -> veto
+#               -> annonce rejetee
+#
+#
+#   REGLE METIER PROTEGEE :
+#
+#       exclude_terms utilise une logique OU :
+#
+#       au moins un terme exclu correspond
+#           -> annonce rejetee.
+#
+# ------------------------------------------------------------------
+def test_one_matching_exclude_term_rejects_listing():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une annonce contenant "DAMAGED".
+    # ------------------------------------------------------------------
+    listing = Listing(
+        title="MSI MEG X570 UNIFY DAMAGED",
+        price=99.99,
+        url="https://www.ebay.fr/itm/789",
+        source="ebay",
+    )
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Plusieurs exclusions dont seule l'une correspond.
+    # ------------------------------------------------------------------
+    exclude_terms = [
+        "broken",
+        "damaged",
+        "for parts",
+    ]
+
+    # ------------------------------------------------------------------
+    # LORSQUE - Le filtre evalue l'annonce.
+    # ------------------------------------------------------------------
+    relevant = is_relevant_listing(
+        listing,
+        exclude_terms=exclude_terms,
+    )
+
+    # ------------------------------------------------------------------
+    # ALORS - Une seule correspondance suffit pour exercer le veto.
+    # ------------------------------------------------------------------
+    assert relevant is False
