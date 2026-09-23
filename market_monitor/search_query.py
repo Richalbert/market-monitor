@@ -9,7 +9,7 @@
 # License     : MIT
 # ==============================================================================
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from market_monitor.models.category import Category
 
@@ -17,5 +17,7 @@ from market_monitor.models.category import Category
 @dataclass
 class SearchQuery:
     name: str  # nom humain de la surveillance
-    query: str  # texte envoyte au moteur de recherche
+    query: str  # texte envoye au moteur de recherche
     category: Category | None = None  # attribut optionnel
+    include_terms: list[str] = field(default_factory=list)
+    exclude_terms: list[str] = field(default_factory=list)
