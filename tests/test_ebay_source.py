@@ -525,3 +525,233 @@ def test_ebay_source_returns_empty_list_when_no_item_summaries():
     # Ce comportement est normal et ne doit pas provoquer d'exception.
     # ------------------------------------------------------------------
     assert listings == []
+
+
+# === Test 64 ======================================================
+#
+#   Comportement :
+#   EbaySource doit appliquer les termes d'exclusion contenus
+#   dans SearchQuery aux annonces retournees par eBay.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une recherche :
+#
+#           query = "X570"
+#
+#       contenant une regle d'exclusion :
+#
+#           exclude_terms = ["broken"]
+#
+#       et eBay retourne une annonce :
+#
+#           "MSI MEG X570 UNIFY BROKEN"
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbaySource execute cette recherche.
+#
+#
+#   ALORS / THEN :
+#
+#       l'annonce ne doit pas apparaitre dans les resultats.
+#
+#
+#   POURQUOI CE TEST ?
+#
+#       Nous avons deja teste que is_relevant_listing()
+#       sait rejeter une annonce contenant un terme exclu.
+#
+#       Nous avons aussi ajoute exclude_terms a SearchQuery.
+#
+#       Mais cela ne garantit pas encore que EbaySource
+#       utilise effectivement ces informations.
+#
+#       Ce test verifie donc le branchement entre :
+#
+#           SearchQuery.exclude_terms
+#
+#                   ↓
+#
+#           EbaySource
+#
+#                   ↓
+#
+#           is_relevant_listing()
+#
+#
+#   REGLE METIER INTRODUITE :
+#
+#       Une annonce retournee par eBay mais rejetee par
+#       les filtres locaux ne doit pas etre retournee
+#       par EbaySource.search().
+#
+# ------------------------------------------------------------------
+def test_ebay_source_filters_listing_using_exclude_terms():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un faux client eBay qui retourne une annonce
+    # contenant le terme "BROKEN".
+    # ------------------------------------------------------------------
+    class FakeEbayClient:
+        def search(self, query, category_id=None):
+            return {
+                "itemSummaries": [
+                    {
+                        "title": "MSI MEG X570 UNIFY BROKEN",
+                        "price": {
+                            "value": "99.99",
+                            "currency": "EUR",
+                        },
+                        "itemWebUrl": "https://www.ebay.fr/itm/123",
+                    }
+                ]
+            }
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une recherche qui exclut le terme "broken".
+    #
+    # La casse est volontairement differente :
+    #
+    #       titre         -> BROKEN
+    #       exclude_terms -> broken
+    #
+    # La gestion insensible a la casse est deja protegee
+    # par nos tests precedents.
+    # ------------------------------------------------------------------
+    search = SearchQuery(
+        name="Cartes meres X570",
+        query="X570",
+        exclude_terms=[
+            "broken",
+        ],
+    )
+
+    source = EbaySource(
+        client=FakeEbayClient(),
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - EbaySource execute la recherche.
+    # ------------------------------------------------------------------
+    listings = source.search(search)
+
+    # ------------------------------------------------------------------
+    # ALORS - L'annonce exclue ne doit pas etre retournee.
+    # ------------------------------------------------------------------
+    assert listings == []
+
+
+# === Test 65 ======================================================
+#
+#   Comportement :
+#   EbaySource doit appliquer les termes d'inclusion contenus
+#   dans SearchQuery aux annonces retournees par eBay.
+#
+#
+#   ETANT DONNE / GIVEN :
+#
+#       Une recherche :
+#
+#           query = "X570"
+#
+#       contenant une regle d'inclusion :
+#
+#           include_terms = ["X570"]
+#
+#       et eBay retourne une annonce :
+#
+#           "ASUS ROG STRIX Z790 HERO"
+#
+#       Cette annonce ne contient pas "X570".
+#
+#
+#   LORSQUE / WHEN :
+#
+#       EbaySource execute cette recherche.
+#
+#
+#   ALORS / THEN :
+#
+#       l'annonce ne doit pas apparaitre dans les resultats.
+#
+#
+#   POURQUOI CE TEST ?
+#
+#       Nous avons deja teste que is_relevant_listing()
+#       sait utiliser include_terms.
+#
+#       SearchQuery sait egalement stocker include_terms.
+#
+#       Mais EbaySource ne transmet pas encore necessairement
+#       cette information au filtre.
+#
+#       Ce test verifie donc le branchement :
+#
+#           SearchQuery.include_terms
+#
+#                   ↓
+#
+#           EbaySource
+#
+#                   ↓
+#
+#           is_relevant_listing()
+#
+#
+#   REGLE METIER INTRODUITE :
+#
+#       Une annonce retournee par eBay mais ne correspondant
+#       a aucun terme d'inclusion doit etre retiree
+#       des resultats de EbaySource.search().
+#
+# ------------------------------------------------------------------
+def test_ebay_source_filters_listing_using_include_terms():
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Un faux client eBay qui retourne une annonce
+    # ne contenant pas le terme "X570".
+    # ------------------------------------------------------------------
+    class FakeEbayClient:
+        def search(self, query, category_id=None):
+            return {
+                "itemSummaries": [
+                    {
+                        "title": "ASUS ROG STRIX Z790 HERO",
+                        "price": {
+                            "value": "199.99",
+                            "currency": "EUR",
+                        },
+                        "itemWebUrl": "https://www.ebay.fr/itm/456",
+                    }
+                ]
+            }
+
+    # ------------------------------------------------------------------
+    # ETANT DONNE - Une recherche qui exige au moins un terme
+    # d'inclusion correspondant.
+    # ------------------------------------------------------------------
+    search = SearchQuery(
+        name="Cartes meres X570",
+        query="X570",
+        include_terms=[
+            "X570",
+        ],
+    )
+
+    source = EbaySource(
+        client=FakeEbayClient(),
+    )
+
+    # ------------------------------------------------------------------
+    # LORSQUE - EbaySource execute la recherche.
+    # ------------------------------------------------------------------
+    listings = source.search(search)
+
+    # ------------------------------------------------------------------
+    # ALORS - L'annonce qui ne contient pas "X570"
+    # ne doit pas etre retournee.
+    # ------------------------------------------------------------------
+    assert listings == []

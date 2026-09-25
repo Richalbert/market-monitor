@@ -12,9 +12,12 @@
 
 
 from market_monitor.sources.base import Source
+
 from market_monitor.search_query import SearchQuery
 
 from market_monitor.models.listing import Listing
+
+from market_monitor.filters import is_relevant_listing
 
 
 class EbaySource(Source):
@@ -34,7 +37,28 @@ class EbaySource(Source):
 
         items = response.get("itemSummaries", [])
 
-        results = parse_items(items)
+        # ---------------------------------------------------
+        # listings contient toutes les annoncees transformes
+        # depuis la reponse eBay
+        # ---------------------------------------------------
+        listings = parse_items(items)
+
+        # ---------------------------------------------------
+        # results contient uniquement celles qui ont passe
+        # notre filtre
+        # ---------------------------------------------------
+        results = []
+
+        # print("exclude_terms =", search.exclude_terms)
+
+        for listing in listings:
+
+            if is_relevant_listing(
+                listing,
+                include_terms=search.include_terms,
+                exclude_terms=search.exclude_terms,
+            ):
+                results.append(listing)
 
         return results
 
